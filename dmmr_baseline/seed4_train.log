@@ -1,0 +1,21 @@
+nohup: 忽略输入
+Number of source subjects:  14 Number of category:  4
+===================== Pre-training Phase =========
+data set amount: 10752	subject: 1	epoch: 1	loss_pretrain:tensor(0.1536, device='cuda:0')	rec_loss:tensor(0.0146, device='cuda:0')	sim_loss:tensor(2.7798, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 2	loss_pretrain:tensor(0.1444, device='cuda:0')	rec_loss:tensor(0.0057, device='cuda:0')	sim_loss:tensor(2.7745, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 3	loss_pretrain:tensor(0.1433, device='cuda:0')	rec_loss:tensor(0.0048, device='cuda:0')	sim_loss:tensor(2.7699, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 4	loss_pretrain:tensor(0.1422, device='cuda:0')	rec_loss:tensor(0.0040, device='cuda:0')	sim_loss:tensor(2.7642, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 5	loss_pretrain:tensor(0.1418, device='cuda:0')	rec_loss:tensor(0.0039, device='cuda:0')	sim_loss:tensor(2.7586, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 6	loss_pretrain:tensor(0.1416, device='cuda:0')	rec_loss:tensor(0.0040, device='cuda:0')	sim_loss:tensor(2.7531, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 7	loss_pretrain:tensor(0.1410, device='cuda:0')	rec_loss:tensor(0.0036, device='cuda:0')	sim_loss:tensor(2.7482, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 8	loss_pretrain:tensor(0.1406, device='cuda:0')	rec_loss:tensor(0.0034, device='cuda:0')	sim_loss:tensor(2.7442, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 9	loss_pretrain:tensor(0.1404, device='cuda:0')	rec_loss:tensor(0.0034, device='cuda:0')	sim_loss:tensor(2.7409, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 10	loss_pretrain:tensor(0.1403, device='cuda:0')	rec_loss:tensor(0.0034, device='cuda:0')	sim_loss:tensor(2.7381, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 11	loss_pretrain:tensor(0.1401, device='cuda:0')	rec_loss:tensor(0.0033, device='cuda:0')	sim_loss:tensor(2.7358, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 12	loss_pretrain:tensor(0.1399, device='cuda:0')	rec_loss:tensor(0.0032, device='cuda:0')	sim_loss:tensor(2.7339, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 13	loss_pretrain:tensor(0.1398, device='cuda:0')	rec_loss:tensor(0.0032, device='cuda:0')	sim_loss:tensor(2.7323, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 14	loss_pretrain:tensor(0.1396, device='cuda:0')	rec_loss:tensor(0.0030, device='cuda:0')	sim_loss:tensor(2.7310, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 15	loss_pretrain:tensor(0.1395, device='cuda:0')	rec_loss:tensor(0.0030, device='cuda:0')	sim_loss:tensor(2.7299, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 16	loss_pretrain:tensor(0.1392, device='cuda:0')	rec_loss:tensor(0.0027, device='cuda:0')	sim_loss:tensor(2.7290, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 17	loss_pretrain:tensor(0.1389, device='cuda:0')	rec_loss:tensor(0.0025, device='cuda:0')	sim_loss:tensor(2.7282, device='cuda:0')
+data set amount: 10752	subject: 1	epoch: 18	loss_pretrain:tensor(0.1387, device='cuda:0')	rec_loss:tensor(0.0023, device='cuda:0')	sim_loss:tensor(2.7274, device='cuda:0')

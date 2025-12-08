@@ -1,0 +1,245 @@
+nohup: 忽略输入
+SEED IV 最终结果
+final acc avg: 0.7513020833333334
+final acc std: 0.11201171401996743
+final each acc:
+Subject 0: 0.7812
+Best Anchor: 11
+Subject 0, Anchor 0: 0.7305
+Subject 0, Anchor 1: 0.7188
+Subject 0, Anchor 2: 0.7207
+Subject 0, Anchor 3: 0.7227
+Subject 0, Anchor 4: 0.7207
+Subject 0, Anchor 5: 0.7188
+Subject 0, Anchor 6: 0.7188
+Subject 0, Anchor 7: 0.7207
+Subject 0, Anchor 8: 0.7207
+Subject 0, Anchor 9: 0.7266
+Subject 0, Anchor 10: 0.7246
+Subject 0, Anchor 11: 0.7812
+Subject 0, Anchor 12: 0.7383
+Subject 0, Anchor 13: 0.7188
+Subject 1: 0.8027
+Best Anchor: 12
+Subject 1, Anchor 0: 0.7363
+Subject 1, Anchor 1: 0.7598
+Subject 1, Anchor 2: 0.7598
+Subject 1, Anchor 3: 0.7480
+Subject 1, Anchor 4: 0.7598
+Subject 1, Anchor 5: 0.7598
+Subject 1, Anchor 6: 0.7344
+Subject 1, Anchor 7: 0.7422
+Subject 1, Anchor 8: 0.7344
+Subject 1, Anchor 9: 0.7383
+Subject 1, Anchor 10: 0.7441
+Subject 1, Anchor 11: 0.7598
+Subject 1, Anchor 12: 0.8027
+Subject 1, Anchor 13: 0.7207
+Subject 2: 0.8672
+Best Anchor: 3
+Subject 2, Anchor 0: 0.8457
+Subject 2, Anchor 1: 0.8613
+Subject 2, Anchor 2: 0.8398
+Subject 2, Anchor 3: 0.8672
+Subject 2, Anchor 4: 0.8477
+Subject 2, Anchor 5: 0.8613
+Subject 2, Anchor 6: 0.8574
+Subject 2, Anchor 7: 0.8398
+Subject 2, Anchor 8: 0.8438
+Subject 2, Anchor 9: 0.8398
+Subject 2, Anchor 10: 0.8613
+Subject 2, Anchor 11: 0.8398
+Subject 2, Anchor 12: 0.8398
+Subject 2, Anchor 13: 0.8613
+Subject 3: 0.6719
+Best Anchor: 1
+Subject 3, Anchor 0: 0.6660
+Subject 3, Anchor 1: 0.6719
+Subject 3, Anchor 2: 0.6113
+Subject 3, Anchor 3: 0.6133
+Subject 3, Anchor 4: 0.6074
+Subject 3, Anchor 5: 0.6055
+Subject 3, Anchor 6: 0.6094
+Subject 3, Anchor 7: 0.6152
+Subject 3, Anchor 8: 0.6426
+Subject 3, Anchor 9: 0.6680
+Subject 3, Anchor 10: 0.6094
+Subject 3, Anchor 11: 0.6270
+Subject 3, Anchor 12: 0.6504
+Subject 3, Anchor 13: 0.6133
+Subject 4: 0.4980
+Best Anchor: 5
+Subject 4, Anchor 0: 0.4570
+Subject 4, Anchor 1: 0.4570
+Subject 4, Anchor 2: 0.4844
+Subject 4, Anchor 3: 0.4570
+Subject 4, Anchor 4: 0.4570
+Subject 4, Anchor 5: 0.4980
+Subject 4, Anchor 6: 0.4551
+Subject 4, Anchor 7: 0.4434
+Subject 4, Anchor 8: 0.4570
+Subject 4, Anchor 9: 0.4570
+Subject 4, Anchor 10: 0.4570
+Subject 4, Anchor 11: 0.4551
+Subject 4, Anchor 12: 0.4570
+Subject 4, Anchor 13: 0.4434
+Subject 5: 0.5117
+Best Anchor: 13
+Subject 5, Anchor 0: 0.4688
+Subject 5, Anchor 1: 0.4473
+Subject 5, Anchor 2: 0.4668
+Subject 5, Anchor 3: 0.4434
+Subject 5, Anchor 4: 0.4570
+Subject 5, Anchor 5: 0.4492
+Subject 5, Anchor 6: 0.4648
+Subject 5, Anchor 7: 0.4453
+Subject 5, Anchor 8: 0.4609
+Subject 5, Anchor 9: 0.4531
+Subject 5, Anchor 10: 0.4551
+Subject 5, Anchor 11: 0.4629
+Subject 5, Anchor 12: 0.4805
+Subject 5, Anchor 13: 0.5117
+Subject 6: 0.7695
+Best Anchor: 8
+Subject 6, Anchor 0: 0.7168
+Subject 6, Anchor 1: 0.7168
+Subject 6, Anchor 2: 0.7168
+Subject 6, Anchor 3: 0.7148
+Subject 6, Anchor 4: 0.7168
+Subject 6, Anchor 5: 0.7148
+Subject 6, Anchor 6: 0.7168
+Subject 6, Anchor 7: 0.7168
+Subject 6, Anchor 8: 0.7695
+Subject 6, Anchor 9: 0.7148
+Subject 6, Anchor 10: 0.7207
+Subject 6, Anchor 11: 0.7168
+Subject 6, Anchor 12: 0.7168
+Subject 6, Anchor 13: 0.7168
+Subject 7: 0.8105
+Best Anchor: 13
+Subject 7, Anchor 0: 0.7812
+Subject 7, Anchor 1: 0.7715
+Subject 7, Anchor 2: 0.7832
+Subject 7, Anchor 3: 0.7754
+Subject 7, Anchor 4: 0.7598
+Subject 7, Anchor 5: 0.7852
+Subject 7, Anchor 6: 0.7559
+Subject 7, Anchor 7: 0.7637
+Subject 7, Anchor 8: 0.7871
+Subject 7, Anchor 9: 0.7812
+Subject 7, Anchor 10: 0.7656
+Subject 7, Anchor 11: 0.7598
+Subject 7, Anchor 12: 0.7676
+Subject 7, Anchor 13: 0.8105
+Subject 8: 0.8359
+Best Anchor: 0
+Subject 8, Anchor 0: 0.8359
+Subject 8, Anchor 1: 0.8105
+Subject 8, Anchor 2: 0.8105
+Subject 8, Anchor 3: 0.8105
+Subject 8, Anchor 4: 0.8125
+Subject 8, Anchor 5: 0.8145
+Subject 8, Anchor 6: 0.8184
+Subject 8, Anchor 7: 0.8184
+Subject 8, Anchor 8: 0.8164
+Subject 8, Anchor 9: 0.8359
+Subject 8, Anchor 10: 0.8164
+Subject 8, Anchor 11: 0.8125
+Subject 8, Anchor 12: 0.8242
+Subject 8, Anchor 13: 0.8105
+Subject 9: 0.9004
+Best Anchor: 5
+Subject 9, Anchor 0: 0.8516
+Subject 9, Anchor 1: 0.8887
+Subject 9, Anchor 2: 0.8789
+Subject 9, Anchor 3: 0.8926
+Subject 9, Anchor 4: 0.8320
+Subject 9, Anchor 5: 0.9004
+Subject 9, Anchor 6: 0.8848
+Subject 9, Anchor 7: 0.8945
+Subject 9, Anchor 8: 0.8945
+Subject 9, Anchor 9: 0.8984
+Subject 9, Anchor 10: 0.8945
+Subject 9, Anchor 11: 0.8750
+Subject 9, Anchor 12: 0.8770
+Subject 9, Anchor 13: 0.8887
+Subject 10: 0.8340
+Best Anchor: 0
+Subject 10, Anchor 0: 0.8340
+Subject 10, Anchor 1: 0.7422
+Subject 10, Anchor 2: 0.7402
+Subject 10, Anchor 3: 0.7383
+Subject 10, Anchor 4: 0.7734
+Subject 10, Anchor 5: 0.8008
+Subject 10, Anchor 6: 0.8027
+Subject 10, Anchor 7: 0.8027
+Subject 10, Anchor 8: 0.7422
+Subject 10, Anchor 9: 0.8340
+Subject 10, Anchor 10: 0.7773
+Subject 10, Anchor 11: 0.8027
+Subject 10, Anchor 12: 0.8125
+Subject 10, Anchor 13: 0.7910
+Subject 11: 0.7031
+Best Anchor: 1
+Subject 11, Anchor 0: 0.6680
+Subject 11, Anchor 1: 0.7031
+Subject 11, Anchor 2: 0.6602
+Subject 11, Anchor 3: 0.6719
+Subject 11, Anchor 4: 0.6250
+Subject 11, Anchor 5: 0.6504
+Subject 11, Anchor 6: 0.6172
+Subject 11, Anchor 7: 0.6172
+Subject 11, Anchor 8: 0.6426
+Subject 11, Anchor 9: 0.6191
+Subject 11, Anchor 10: 0.6172
+Subject 11, Anchor 11: 0.6465
+Subject 11, Anchor 12: 0.6445
+Subject 11, Anchor 13: 0.6445
+Subject 12: 0.7441
+Best Anchor: 4
+Subject 12, Anchor 0: 0.7031
+Subject 12, Anchor 1: 0.6914
+Subject 12, Anchor 2: 0.6855
+Subject 12, Anchor 3: 0.6855
+Subject 12, Anchor 4: 0.7441
+Subject 12, Anchor 5: 0.6855
+Subject 12, Anchor 6: 0.6855
+Subject 12, Anchor 7: 0.6914
+Subject 12, Anchor 8: 0.6875
+Subject 12, Anchor 9: 0.6914
+Subject 12, Anchor 10: 0.6855
+Subject 12, Anchor 11: 0.7383
+Subject 12, Anchor 12: 0.6855
+Subject 12, Anchor 13: 0.6855
+Subject 13: 0.7578
+Best Anchor: 9
+Subject 13, Anchor 0: 0.6875
+Subject 13, Anchor 1: 0.6641
+Subject 13, Anchor 2: 0.6836
+Subject 13, Anchor 3: 0.6719
+Subject 13, Anchor 4: 0.7109
+Subject 13, Anchor 5: 0.6934
+Subject 13, Anchor 6: 0.6914
+Subject 13, Anchor 7: 0.6895
+Subject 13, Anchor 8: 0.6895
+Subject 13, Anchor 9: 0.7578
+Subject 13, Anchor 10: 0.6914
+Subject 13, Anchor 11: 0.6895
+Subject 13, Anchor 12: 0.6875
+Subject 13, Anchor 13: 0.6914
+Subject 14: 0.7812
+Best Anchor: 10
+Subject 14, Anchor 0: 0.7754
+Subject 14, Anchor 1: 0.7422
+Subject 14, Anchor 2: 0.7227
+Subject 14, Anchor 3: 0.7461
+Subject 14, Anchor 4: 0.7637
+Subject 14, Anchor 5: 0.7773
+Subject 14, Anchor 6: 0.7715
+Subject 14, Anchor 7: 0.7734
+Subject 14, Anchor 8: 0.7734
+Subject 14, Anchor 9: 0.7207
+Subject 14, Anchor 10: 0.7812
+Subject 14, Anchor 11: 0.7656
+Subject 14, Anchor 12: 0.7227
+Subject 14, Anchor 13: 0.7734
