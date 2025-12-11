@@ -58,6 +58,7 @@ def setup_logging(subject, log_dir, prefix=""):
     return logger
 
 def evaluate_on_sources(model, source_loaders, exclude_id, device):
+    """计算模型在除 Anchor 外所有源域上的平均准确率"""
     model.eval()
     total_acc = 0.0
     count = 0
@@ -72,6 +73,7 @@ def evaluate_on_sources(model, source_loaders, exclude_id, device):
     return total_acc / count if count > 0 else 0.0
 
 def collect_predictions(model, loader, args, device):
+    """收集预测结果用于计算对齐矩阵"""
     model.eval()
     all_predictions = []
     all_true_labels = []
@@ -93,6 +95,9 @@ def collect_predictions(model, loader, args, device):
 
 
 def step1(subject, args):
+    """
+    Step 1: Pre-training (Standard LSTM-DANN)
+    """
     args.num_workers_train = 0
     args.num_workers_test = 0
 
@@ -130,125 +135,130 @@ def step1(subject, args):
     return final_acc
 
 
-def step2_1(subject, args, anchor_id, device, source_loaders, test_loader, label_align_loss_fn, logger):
-    logger.info(f"--- Processing Candidate Anchor: {anchor_id} ---")
+# =============================================================================
+# 新函数 1: 仅用于评估 Anchor 的代表性 (只跑 Phase 1)
+# =============================================================================
+def evaluate_candidate_anchor(subject, args, anchor_id, device, source_loaders, logger):
+    """
+    轻量级函数：加载预训练特征，重置分类器，仅在 Anchor 上训练。
+    返回：Best Source Validation Score (SrcScore)
+    """
+    logger.info(f"--- Evaluating Candidate Anchor: {anchor_id} (Selection Phase) ---")
     
-    # -----------------------------------------------------------
-    # 初始化 Label Align Model (贯穿 Phase 2-5)
-    # -----------------------------------------------------------
+    # 1. 加载预训练特征提取器
+    pretrain_path = os.path.join(args.model_dir, f"pretrain_model_subject{subject}.pth")
+    if not os.path.exists(pretrain_path):
+        return 0.0
+
+    model = LSTMDANN(input_size=310, hidden_size=128, num_layers=2, 
+                     num_classes=args.num_classes, num_domains=14, dropout=0.5).to(device)
+    model.load_state_dict(torch.load(pretrain_path))
+    
+    # 2. 重置分类器 (关键！)
+    model.emotion_classifier = EmotionClassifier(input_size=256, num_classes=args.num_classes, dropout=0.5).to(device)
+    optimizer_cls = optim.Adam(model.emotion_classifier.parameters(), lr=args.lr)
+    
+    best_src_val = 0.0
+    
+    # 3. 仅运行 Phase 1
+    for epoch in range(args.anchor_epochs):
+        train_cls_one_epoch(model, [source_loaders[anchor_id]], optimizer_cls, device, epoch, args.anchor_epochs)
+        
+        # 计算源域泛化分
+        src_val = evaluate_on_sources(model, source_loaders, anchor_id, device)
+        if src_val > best_src_val:
+            best_src_val = src_val
+            
+    # logger.info(f"Candidate {anchor_id} Score: {best_src_val:.4f}")
+    return best_src_val
+
+
+# =============================================================================
+# 新函数 2: 针对选定的 Best Anchor 运行完整 GLA 流程 (Phase 1-5)
+# =============================================================================
+def train_final_gla(subject, args, anchor_id, device, source_loaders, test_loader, label_align_loss_fn, logger):
+    """
+    重量级函数：运行完整的 Phase 1-5 流程。
+    """
+    logger.info(f"--- Running Full GLA Pipeline with Best Anchor: {anchor_id} ---")
+    
+    # 初始化 Label Align Model
     label_align_model = LabelAlignModel(
         num_domains=len(source_loaders), 
         num_classes=args.num_classes, 
         tau=args.tau).to(device)
     optimizer_label_align = torch.optim.Adam(label_align_model.parameters(), lr=args.lr)
     
-    # -----------------------------------------------------------
-    # 准备工作：加载预训练模型 (用于 Phase 1-4 的计算)
-    # -----------------------------------------------------------
+    # 加载预训练模型
     pretrain_path = os.path.join(args.model_dir, f"pretrain_model_subject{subject}.pth")
-    if not os.path.exists(pretrain_path):
-        logger.error(f"Pretrained model not found: {pretrain_path}")
-        return 0.0, 0.0
-
-    # 这里我们定义一个 helper function 来快速重置/加载模型
-    def load_pretrained_feature_extractor():
-        tmp_model = LSTMDANN(
-            input_size=310, hidden_size=128, num_layers=2, 
-            num_classes=args.num_classes, num_domains=14, dropout=0.5
-        ).to(device)
-        tmp_model.load_state_dict(torch.load(pretrain_path))
-        return tmp_model
-
-    # 初始加载
-    model = load_pretrained_feature_extractor()
+    model = LSTMDANN(input_size=310, hidden_size=128, num_layers=2, 
+                     num_classes=args.num_classes, num_domains=14, dropout=0.5).to(device)
+    model.load_state_dict(torch.load(pretrain_path))
     
-    # 指标记录
-    selection_score = 0.0 
-    peak_test_acc = 0.0
-    
-    def run_evaluation(phase, epoch, update_selection_score=False):
-        nonlocal selection_score, peak_test_acc
-        
-        # Source Validation (仅在 Phase 1 且 update=True 时更新 selection_score)
-        src_val = evaluate_on_sources(model, source_loaders, anchor_id, device)
-        if update_selection_score:
-            if src_val > selection_score:
-                selection_score = src_val
-        
-        # Test Evaluation (始终记录峰值)
-        test_val = evaluate(model, test_loader, device)
-        if test_val > peak_test_acc:
-            peak_test_acc = test_val
-            
-        if epoch % 10 == 0 or epoch == 1:
-            logger.info(f"{phase} [Ep {epoch}] SrcVal={src_val:.4f} (SelScore={selection_score:.4f}) | TestAcc={test_val:.4f} (Peak={peak_test_acc:.4f})")
-
-    # =================================================================
-    # Phase 1: Train Regressor on Anchor (GLA Step 2)
-    # =================================================================
-    # 关键：重置分类器，使用初始状态
+    # 重置分类器 (为了 Phase 1 的纯净性，我们重新跑一遍 Phase 1)
     model.emotion_classifier = EmotionClassifier(input_size=256, num_classes=args.num_classes, dropout=0.5).to(device)
     optimizer_cls = optim.Adam(model.emotion_classifier.parameters(), lr=args.lr)
     
-    logger.info("Phase 1: Training Classifier on Anchor (Reset Classifier)")
+    peak_test_acc = 0.0
+    
+    def run_evaluation(phase, epoch):
+        nonlocal peak_test_acc
+        test_val = evaluate(model, test_loader, device)
+        if test_val > peak_test_acc:
+            peak_test_acc = test_val
+        if epoch % 10 == 0 or epoch == 1:
+            logger.info(f"{phase} [Ep {epoch}] TestAcc={test_val:.4f} (Peak={peak_test_acc:.4f})")
+
+    # === Phase 1: Train Regressor on Anchor ===
+    logger.info("Phase 1: Warming up Anchor Classifier")
     for epoch in range(args.anchor_epochs):
         train_cls_one_epoch(model, [source_loaders[anchor_id]], optimizer_cls, device, epoch, args.anchor_epochs)
-        run_evaluation("Anchor-Cls", epoch+1, update_selection_score=True)
+        # Phase 1 也可以记录一下 Test Acc
+        run_evaluation("Anchor-Cls", epoch+1)
 
-    # =================================================================
-    # Phase 2: Align Remaining Domains (GLA Step 3)
-    # =================================================================
-    logger.info("Phase 2: Training Label Alignment Matrix (Others -> Anchor)")
+    # === Phase 2: Align Remaining Domains ===
+    logger.info("Phase 2: Training Label Alignment Matrix")
     for source_id in range(len(source_loaders)):
         if source_id == anchor_id: continue
         preds, trues = collect_predictions(model, source_loaders[source_id], args, device)
         if preds is not None:
             train_label_align_one_epoch(label_align_model, optimizer_label_align, source_id, preds, trues, label_align_loss_fn)
 
-    # =================================================================
-    # Phase 3: Train Regressor on Remaining Domains (GLA Step 4)
-    # =================================================================
-    # 关键：再次重置分类器！这符合你发现的 "Phase 3 用了初始状态分类器"
+    # === Phase 3: Train on Remaining Domains ===
+    # 再次重置分类器
     model.emotion_classifier = EmotionClassifier(input_size=256, num_classes=args.num_classes, dropout=0.5).to(device)
     optimizer_cls = optim.Adam(model.emotion_classifier.parameters(), lr=args.lr)
 
-    logger.info("Phase 3: Training Classifier on Others (Reset Classifier Again)")
+    logger.info("Phase 3: Training Classifier on Others (Reset Classifier)")
     for epoch in range(args.cls_epochs):
         train_cls_one_epoch_with_aligned_label(model, source_loaders, optimizer_cls, device, label_align_model, anchor_id)
-        run_evaluation("Aligned-Cls", epoch+1, update_selection_score=False)
+        run_evaluation("Aligned-Cls", epoch+1)
 
-    # =================================================================
-    # Phase 4: Align Anchor (GLA Step 5)
-    # =================================================================
+    # === Phase 4: Align Anchor ===
     logger.info("Phase 4: Anchor Self-Correction")
     preds, trues = collect_predictions(model, source_loaders[anchor_id], args, device)
     if preds is not None:
         train_label_align_one_epoch(label_align_model, optimizer_label_align, anchor_id, preds, trues, label_align_loss_fn)
 
-    # =================================================================
-    # Phase 5: Final Joint Training (GLA Step 6)
-    # =================================================================
-    # 关键：彻底重置整个模型（Feature Extractor + Classifier），从头训练！
-    # 这符合 "train gaze feature extractor and regressor from scratch"
-    
+    # === Phase 5: Final Joint Training (From Scratch) ===
     logger.info("Phase 5: Re-initializing FULL Model and Training from Scratch")
-    
-    model = LSTMDANN(
-        input_size=310, hidden_size=128, num_layers=2, 
-        num_classes=args.num_classes, num_domains=14, dropout=0.5
-    ).to(device)
-    
-    # 重新定义所有参数的优化器
+    model = LSTMDANN(input_size=310, hidden_size=128, num_layers=2, 
+                     num_classes=args.num_classes, num_domains=14, dropout=0.5).to(device)
     optimizer_all = optim.Adam(model.parameters(), lr=args.lr)
 
     for epoch in range(args.epochs):
         train_all_one_epoch_with_aligned_label(model, source_loaders, optimizer_all, device, epoch, args.epochs, label_align_model)
-        run_evaluation("Final-All", epoch+1, update_selection_score=False)
+        run_evaluation("Final-All", epoch+1)
         
-    return selection_score, peak_test_acc
+    return peak_test_acc
 
 
 def step2(subject, args):
+    """
+    Step 2 Main: 
+    1. 遍历所有 Anchor 仅运行 Phase 1，快速选出最佳 Anchor。
+    2. 对最佳 Anchor 运行完整 GLA 流程。
+    """
     args.num_workers_train = 0
     args.num_workers_test = 0
 
@@ -263,27 +273,37 @@ def step2(subject, args):
                                          reg_beta=args.reg_beta, 
                                          reg_gamma=args.reg_gamma)
 
-    anchor_results = []
+    # -----------------------------------------------------
+    # Part 1: Anchor Selection (快速筛选)
+    # -----------------------------------------------------
+    logger.info(">>> Starting Anchor Selection Phase (Running Phase 1 Only)")
+    best_src_score = -1.0
+    best_anchor_id = -1
     
     for anchor_id in range(len(source_loaders)):
-        src_score, test_score = step2_1(subject, args, anchor_id, device, source_loaders, 
-                                        test_loader, label_align_loss_fn, logger)
-        anchor_results.append((anchor_id, src_score, test_score))
-        logger.info(f">>> Candidate {anchor_id}: SrcScore={src_score:.4f}, TestScore={test_score:.4f}")
+        score = evaluate_candidate_anchor(subject, args, anchor_id, device, source_loaders, logger)
+        logger.info(f"Candidate {anchor_id}: SrcScore={score:.4f}")
+        
+        if score > best_src_score:
+            best_src_score = score
+            best_anchor_id = anchor_id
+            
+    logger.info(f">>> Selection Done. Best Anchor: {best_anchor_id} (Score: {best_src_score:.4f})")
 
-    best_anchor_entry = max(anchor_results, key=lambda x: x[1])
-    
-    best_anchor_id = best_anchor_entry[0]
-    best_src_score = best_anchor_entry[1]
-    final_reported_test_acc = best_anchor_entry[2]
+    # -----------------------------------------------------
+    # Part 2: Final Training (针对最佳 Anchor 全量跑)
+    # -----------------------------------------------------
+    logger.info(">>> Starting Final GLA Pipeline")
+    final_test_acc = train_final_gla(subject, args, best_anchor_id, device, source_loaders, 
+                                     test_loader, label_align_loss_fn, logger)
     
     logger.info("="*50)
     logger.info(f"Subject {subject} Done.")
-    logger.info(f"Selected Anchor: {best_anchor_id} (CV Score: {best_src_score:.4f})")
-    logger.info(f"Reported Test Acc: {final_reported_test_acc:.4f}")
+    logger.info(f"Selected Anchor: {best_anchor_id}")
+    logger.info(f"Final Reported Test Acc: {final_test_acc:.4f}")
     logger.info("="*50)
     
-    return final_reported_test_acc, best_anchor_id, anchor_results
+    return final_test_acc, best_anchor_id
 
 
 def main(args):
@@ -323,6 +343,7 @@ def main(args):
 
 
 if __name__ == "__main__":
+    # 配置路径
     seed3_path = "/home/fb/src/dataset/SEED/ExtractedFeatures/"
     seed4_path = "/home/nise-emo/nise-lab/dataset/public/SEED_IV/eeg_feature_smooth/"
     
