@@ -86,10 +86,10 @@ class MSE(nn.Module):
         return mse
 
 
-# 训练特征提取器
-class FeatureExtractorModel(nn.Module):
+# proposed DMMR model
+class DMMRPreTrainingModel(nn.Module):
     def __init__(self, cuda, number_of_source=14, number_of_category=3, batch_size=10, time_steps=15):
-        super(FeatureExtractorModel, self).__init__()
+        super(DMMRPreTrainingModel, self).__init__()
         self.batch_size = batch_size
         self.time_steps = time_steps
         self.number_of_source = number_of_source
@@ -100,6 +100,8 @@ class FeatureExtractorModel(nn.Module):
         for i in range(number_of_source):
             exec('self.decoder' + str(i) + '=Decoder(input_dim=310, hid_dim=64, n_layers=1, output_dim=310)')
     def forward(self, x, corres, subject_id, m=0, mark=0):
+        # Noise Injection, with the proposed method Time Steps Shuffling
+        # x = timeStepsShuffle(x)
         # The ABP module
         x = self.attentionLayer(x, x.shape[0], self.time_steps)
         # Encoder the weighted features with one-layer LSTM
@@ -114,7 +116,6 @@ class FeatureExtractorModel(nn.Module):
         sim_loss = F.nll_loss(subject_predict, subject_id)
 
         # Build Supervision for Decoders, the inputs are also weighted
-        # 翻译： 构建解码器的监督信号，输入也是加权的
         corres = self.attentionLayer(corres, corres.shape[0], self.time_steps)
         splitted_tensors = torch.chunk(corres, self.number_of_source, dim=0)
         rec_loss = 0
@@ -132,10 +133,10 @@ class FeatureExtractorModel(nn.Module):
             rec_loss += self.mse(x_out, splitted_tensors[i])
         return rec_loss, sim_loss
 
-# 训练分类器
-class ClassifierModel(nn.Module):
+
+class DMMRFineTuningModel(nn.Module):
     def __init__(self, cuda, baseModel, number_of_source=14, number_of_category=3, batch_size=10, time_steps=15):
-        super(ClassifierModel, self).__init__()
+        super(DMMRFineTuningModel, self).__init__()
         self.baseModel = copy.deepcopy(baseModel)
         self.batch_size = batch_size
         self.time_steps = time_steps
@@ -146,6 +147,9 @@ class ClassifierModel(nn.Module):
         # Add a new emotion classifier for emotion recognition
         self.cls_fc = nn.Sequential(nn.Linear(64, 64, bias=False), nn.BatchNorm1d(64),
                                nn.ReLU(inplace=True), nn.Linear(64, number_of_category, bias=True))
+        self.mse = MSE()
+        for i in range(number_of_source):
+            exec('self.decoder' + str(i) + '=Decoder(input_dim=310, hid_dim=64, n_layers=1, output_dim=310)')
     def forward(self, x, label_src=0):
         x = self.attentionLayer(x, x.shape[0], self.time_steps)
         shared_last_out, shared_hn, shared_cn = self.sharedEncoder(x)
@@ -154,88 +158,111 @@ class ClassifierModel(nn.Module):
         cls_loss = F.nll_loss(x_pred, label_src.squeeze())
         return x_pred, x_logits, cls_loss
 
-
-# 标签对齐损失函数
-class LabelAlignLoss(nn.Module):
-    """标签对齐损失函数"""
-    def __init__(self, num_classes, reg_alpha=1e-2, reg_beta=1e-3, reg_gamma=1e-3):
-        super(LabelAlignLoss, self).__init__()
-        self.num_classes = num_classes
-        self.reg_alpha = reg_alpha
-        self.reg_beta = reg_beta
-        self.reg_gamma = reg_gamma
-    
-    def forward(self, aligned_probs, target_probs, T_matrices):
-        """
-        对齐损失计算
-        """
-        # KL散度损失
-        # kl_loss = F.kl_div(torch.log(aligned_probs + 1e-8), target_probs, reduction='batchmean')
-        kl_loss = F.kl_div(torch.log(aligned_probs + 1e-6), target_probs + 1e-6, reduction='batchmean')
-        # 正则化项
-        reg_loss = 0
-        for T in T_matrices:
-            # 单位矩阵正则化
-            identity_reg = torch.norm(T - torch.eye(self.num_classes, device=T.device), p='fro') ** 2
-            
-            # 行熵正则化
-            row_entropy = -(T * torch.log(T + 1e-8)).sum(dim=-1).mean()
-            
-            # 非对角线正则化
-            off_diag = T - torch.diag(torch.diag(T))
-            off_diag_reg = torch.norm(off_diag, p='fro') ** 2
-            
-            reg_loss += self.reg_alpha * identity_reg + self.reg_beta * row_entropy + self.reg_gamma * off_diag_reg
-        
-        return kl_loss + reg_loss
-    
-
-# 标签对齐
-class LabelAlignModel(nn.Module):
-    def __init__(self, num_domains, num_classes, tau=0.7, init_eye_scale=5.0):
-        super(LabelAlignModel, self).__init__()
-        self.num_domains = num_domains
-        self.num_classes = num_classes
-        self.tau = tau
-        
-        # 为每个域学习一个C×C的标签变换矩阵
-        self.T = nn.Parameter(torch.zeros(num_domains, num_classes, num_classes))
-        
-        # 初始化为单位矩阵的缩放版本
-        with torch.no_grad():
-            eye = torch.eye(num_classes).unsqueeze(0).repeat(num_domains, 1, 1)
-            self.T.add_(init_eye_scale * eye)
-    
-    def get_T(self, domain_id):
-        """获取指定域的标签变换矩阵"""
-        T_j = F.softmax(self.T[domain_id] / self.tau, dim=-1)  # 行归一化
-        return T_j
-    
-    def forward(self, labels,domain_id):
-        """
-        对标签进行对齐变换
-        labels: one-hot编码的标签 [batch_size, num_classes]
-        domain_id: 域索引
-        """
-        T_j = self.get_T(domain_id)
-        aligned_labels = torch.matmul(labels, T_j)
-        return aligned_labels
-    
-    def get_aligned_label(self, y, domain_id):
-        y_onehot = torch.zeros(y.size(0), self.num_classes, device=y.device)
-        y_onehot.scatter_(1, y.view(-1, 1), 1)
-        T_domain = self.get_T(domain_id)
-        aligned_labels = torch.matmul(y_onehot, T_domain)
-        
-        return aligned_labels
-
-        
-class TestModel(nn.Module):
+class DMMRTestModel(nn.Module):
     def __init__(self, baseModel):
-        super(TestModel, self).__init__()
+        super(DMMRTestModel, self).__init__()
         self.baseModel = copy.deepcopy(baseModel)
     def forward(self, x):
         x = self.baseModel.attentionLayer(x, self.baseModel.batch_size, self.baseModel.time_steps)
         shared_last_out, shared_hn, shared_cn = self.baseModel.sharedEncoder(x)
         x_shared_logits = self.baseModel.cls_fc(shared_last_out)
         return x_shared_logits
+
+
+# ==========================================
+# 3. GLA 标签对齐相关 (AlignModel, AlignLoss)
+# ==========================================
+
+class LabelAlignModel(nn.Module):
+    """
+    标签对齐模型
+    学习每个源域相对于 Anchor 域的混淆矩阵 T
+    """
+    def __init__(self, num_domains, num_classes, tau=0.7, init_eye_scale=5.0):
+        super(LabelAlignModel, self).__init__()
+        self.num_domains = num_domains
+        self.num_classes = num_classes
+        self.tau = tau
+        
+        # T: (num_domains, num_classes, num_classes)
+        # 每一个域对应一个混淆矩阵
+        self.T = nn.Parameter(torch.zeros(num_domains, num_classes, num_classes))
+        
+        # 初始化：倾向于单位矩阵 (Identity)
+        # init_eye_scale 越大，初始状态越接近不修改标签
+        with torch.no_grad():
+            eye = torch.eye(num_classes).unsqueeze(0).repeat(num_domains, 1, 1)
+            self.T.add_(init_eye_scale * eye)
+    
+    def get_T(self, domain_id):
+        """获取指定域的归一化转移矩阵 (Row-Normalized)"""
+        # 使用 softmax 保证矩阵每一行和为1（概率分布）
+        T_j = F.softmax(self.T[domain_id] / self.tau, dim=-1)
+        return T_j
+    
+    def get_aligned_label(self, y, domain_id):
+        """
+        计算对齐后的软标签
+        Args:
+            y: 真实标签 (LongTensor), shape (batch,)
+            domain_id: 当前域的索引
+        Returns:
+            aligned_labels: 对齐后的软标签分布, shape (batch, num_classes)
+        """
+        # 转换为 One-Hot
+        y_onehot = torch.zeros(y.size(0), self.num_classes, device=y.device)
+        y_onehot.scatter_(1, y.view(-1, 1), 1)
+        
+        # 获取转移矩阵并计算: y_aligned = y_true * T
+        T_domain = self.get_T(domain_id)
+        aligned_labels = torch.matmul(y_onehot, T_domain)
+        
+        return aligned_labels
+
+class LabelAlignLoss(nn.Module):
+    """
+    标签对齐损失函数
+    Loss = KL(Model_Pred || Aligned_Label) + Regularization
+    """
+    def __init__(self, num_classes, reg_alpha=1e-2, reg_beta=1e-3, reg_gamma=1e-3):
+        super(LabelAlignLoss, self).__init__()
+        self.num_classes = num_classes
+        self.reg_alpha = reg_alpha # 单位矩阵约束权重
+        self.reg_beta = reg_beta   # 熵约束权重 (Sharpness)
+        self.reg_gamma = reg_gamma # 非对角线稀疏权重
+    
+    def forward(self, aligned_probs, target_probs, T_matrices):
+        """
+        Args:
+            aligned_probs: 对齐后的标签分布 (Q)
+            target_probs: 模型预测的概率分布 (P, 通常是 Teacher 的预测)
+            T_matrices: 当前涉及的混淆矩阵列表
+        """
+        # 1. KL散度损失: D_KL(Target || Aligned)
+        # input需要是 log-probs, target 是 probs
+        # aligned_probs 经过 T 矩阵运算是概率，所以取 log
+        # target_probs 必须是概率 (0-1)
+        kl_loss = F.kl_div(
+            torch.log(aligned_probs + 1e-8), 
+            target_probs + 1e-8, 
+            reduction='batchmean'
+        )
+        
+        # 2. 正则化项
+        reg_loss = 0
+        for T in T_matrices:
+            # Identity Regularization: T 应该接近单位矩阵
+            identity_reg = torch.norm(T - torch.eye(self.num_classes, device=T.device), p='fro') ** 2
+            
+            # Entropy Regularization: 最小化熵，鼓励 T 矩阵尖锐 (Confident)
+            row_entropy = -(T * torch.log(T + 1e-8)).sum(dim=-1).mean()
+            
+            # Off-diagonal Regularization: 抑制非对角线元素
+            off_diag = T - torch.diag(torch.diag(T))
+            off_diag_reg = torch.norm(off_diag, p='fro') ** 2
+            
+            reg_loss += self.reg_alpha * identity_reg + \
+                        self.reg_beta * row_entropy + \
+                        self.reg_gamma * off_diag_reg
+        
+        return kl_loss + reg_loss

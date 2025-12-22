@@ -152,7 +152,8 @@ def trainDMMR(data_loader_dict, optimizer_config, cuda, args, iteration, one_sub
             'acc:' + str(acc)+'\t'+
              'test_acc:' + str(acc_DMMR)+'\t'+
              'best_acc:' + str(acc_final))
-    modelDir = "model/" + args.way + "/" + args.index + "/"
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    modelDir = os.path.join(current_dir, "model/" + args.way + "/" + args.index + "/")
     try:
         os.makedirs(modelDir)
     except:

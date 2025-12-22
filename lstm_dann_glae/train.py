@@ -93,36 +93,63 @@ def train_cls_one_epoch(model, loaders, optimizer, device, epoch, epochs):
     return total_loss / total, correct / total
 
 
+# def train_label_align_one_epoch(label_align_model, optimizer, source_id, 
+#                                 predictions, true_labels, label_align_loss_fn):
+#     """
+#     Step 2 Phase 2: 训练标签对齐矩阵 T
+#     Args:
+#         predictions: 模型对源域数据的预测 (Logits 或 LogSoftmax)
+#         true_labels: 真实标签 (One-hot)
+#     """
+#     label_align_model.train()
+#     optimizer.zero_grad()
+    
+#     # 获取当前域的变换矩阵 T
+#     T_target = label_align_model.get_T(source_id)
+    
+#     # 计算对齐后的标签分布: Y_aligned = Y_true * T
+#     # true_labels 应该是 one-hot
+#     aligned_labels = torch.matmul(true_labels, T_target)
+
+#     # 处理模型预测值
+#     # 注意: LSTMDANN 输出是 log_softmax
+#     # LabelAlignLoss 中的 target_probs 需要是概率分布 (0-1)
+#     target_probs = torch.exp(predictions)
+    
+#     # 计算损失
+#     # Loss = KL(log(aligned), target) + Regularization
+#     loss = label_align_loss_fn(aligned_labels, target_probs, [T_target])
+    
+#     loss.backward()
+#     optimizer.step()
+#     return loss.item()
+
 def train_label_align_one_epoch(label_align_model, optimizer, source_id, 
                                 predictions, true_labels, label_align_loss_fn):
     """
     Step 2 Phase 2: 训练标签对齐矩阵 T
-    Args:
-        predictions: 模型对源域数据的预测 (Logits 或 LogSoftmax)
-        true_labels: 真实标签 (One-hot)
     """
     label_align_model.train()
     optimizer.zero_grad()
     
-    # 获取当前域的变换矩阵 T
     T_target = label_align_model.get_T(source_id)
     
-    # 计算对齐后的标签分布: Y_aligned = Y_true * T
-    # true_labels 应该是 one-hot
-    aligned_labels = torch.matmul(true_labels, T_target)
-
-    # 处理模型预测值
-    # 注意: LSTMDANN 输出是 log_softmax
-    # LabelAlignLoss 中的 target_probs 需要是概率分布 (0-1)
-    target_probs = torch.exp(predictions)
+    # 监控 T 矩阵：计算对角线元素的平均值
+    # 如果该值接近 1.0，说明 T 是单位矩阵（不改变标签）
+    # 如果该值很低（如 <0.5），说明标签被严重打乱
+    with torch.no_grad():
+        diag_mean = torch.diagonal(T_target).mean().item()
     
-    # 计算损失
-    # Loss = KL(log(aligned), target) + Regularization
+    aligned_labels = torch.matmul(true_labels, T_target)
+    target_probs = torch.exp(predictions) # LogSoftmax -> Probs
+    
     loss = label_align_loss_fn(aligned_labels, target_probs, [T_target])
     
     loss.backward()
     optimizer.step()
-    return loss.item()
+    
+    # 返回 loss 和 对角线均值 用于打印
+    return loss.item(), diag_mean
 
 
 def train_cls_one_epoch_with_aligned_label(model, loaders, optimizer, device, 
